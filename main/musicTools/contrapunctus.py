@@ -47,21 +47,80 @@ class Contrapunctus:
             steps = self.scale + steps
         return sum(steps[(interval-1) * -1:]) + slight
 
+    def findInterval(x, y)
+        if x > y:
+            tmp = x
+            x = y
+            y = tmp
+        pivot = x % 12
+        steps = self.scale[pivot+1:]
+        count = 1
+        while 1:
+            for step in steps:
+                if x == y:
+                    return count
+                if x > y:
+                    return count - .5
+                x += step
+                count += 1
+            steps = self.scale
+
+
+    # the next two functions will return an appropriate interval
+    # pi = previous interval
+    # pcf = previous cantus firmus note
+    # pcp = previous counterpoint note
+    # ccf = current cantus firmus note
+
+    def oblique(pi, pcf, pcp, ccf):
+        if pcf == ccf:
+            # counterpoint
+            intervals = filter(lambda x:x!=pi, consonants)
+            ri = random() % len(intervals)
+            return intervals[ri]
+        else:
+            # if the melody moves, then the cp must stay the same
+            return 0
+
+
+    def contrary(pi, pcf, pcp, ccf):
+        if ccf == pcf:
+            return oblique(pi, pcf, pcp, ccf)
+        if ccf > pcf:
+            fil = lambda x:x<pi
+        elif ccf < pcf:
+            fil = lambda x:x>pi
+       intervals = filter(fil, consonants)
+       if len(intervals):
+           ri = random() % len(intervals)
+           return intervals[ri]
+       else:
+           if pi in perfect:
+               return oblique()
+           else:
+               if random() % 2:
+                   return direct(pi, pcf, pcp, ccf)
+               else:
+                   return oblique(pi, pcf, pcp, ccf)
+
+
     def generate(melody, vertical=1):
         cp = []
         offset = vertical * 12
         ri = random() % 3
 
-        # previous tells us whether the previous chord was perfect or imperfect
-        # true if perfect, false otherwise
-        previous = True
+        # previous records the previous interval, slightly abused here
+        previous = perfect[ri]
 
         # Beginning chord
 
         if vertical > 0:
-            cp.push(intervalUp(melody[0], perfect[ri]))
+            interval=intervalUp
         else:
-            cp.push(intervalDown(melody[0], perfect[ri]))
+            interval=intervalDown
+
+
+        cp.push(interval(melody[0], previous))
 
 
         # Middle run
@@ -69,37 +128,52 @@ class Contrapunctus:
         for note in melody[1:-3]:
             ri = random() % 3
 
-            if previous:
+            if previous in perfect:
                 # We can move in oblique and contrary motion
                 if random() % 2:
                     # oblique
+                    present = oblique(previous, melody[i-1], cp[i-1], melody[i])
+                    if not present:
+                        cp.push(cp[-1])
+                        previous = findInterval()
+                        i += 1
+                        continue
                 else:
                     # contrary
+                    present = contrary(previous, melody[i-1], cp[i-1], melody[i])
+
 
             else:
                 # We can move in direct, oblique, and contrary motion
                 j = random() % 3
                 if j == 2:
-                    # direct, the present chord must not be perfect
+                    # direct 
+                    present = previous
                 elif j == 1:
                     # oblique
+                    present = oblique(previous, melody[i-1], cp[i-1], melody[i])
+                    if not present:
+                        cp.push(cp[-1])
+                        previous = findInterval()
+                        i += 1
+                        continue
                 else:
+                    present = contrary(previous, melody[i-1], cp[i-1], melody[i])
                     # contrary
 
-            if vertical > 0:
-                cp.push(intervalUp(note, a))
-            else:
-                cp.push(intervalDown(note, b))
+            cp.push(interval(note, present))
 
-        i += 1
+            previous= present
+
+            i += 1
 
         # Last two chords
 
         ri = random() % 3
 
         if vertical > 0:
-            cp.push(intervalUp(melody[-2], 6, 1))
-            cp.push(intervalUp(melody[-1], perfect[ri]))
+            cp.push(interval(melody[-2], 6, 1))
         else:
-            cp.push(intervalDown(melody[-2], 3, -1))
-            cp.push(intervalDown(melody[-1], perfect[ri]))
+            cp.push(interval(melody[-2], 3, -1))
+
+        cp.push(interval(melody[-1], perfect[ri]))
