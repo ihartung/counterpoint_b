@@ -1,14 +1,5 @@
 from random import random
 
-
-def getOffset(name):
-    flatmap = {'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'}
-    if 'b' in name:
-        name = flatmap['name']
-    result = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
-    return result.index(name)
-
-
 class Contrapunctus:
 
     perfect = [1,5,8]
@@ -24,8 +15,14 @@ class Contrapunctus:
             tmp = [2,1,2,2,1,2,2]
             self.scale = tmp[self.offset:] + tmp[:self.offset]
 
+    def getOffset(name):
+        flatmap = {'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'}
+        if 'b' in name:
+            name = flatmap['name']
+        result = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+        return result.index(name)
 
-    def intervalUp(root, interval, slight=0):
+    def intervalUp(root, interval, half=0):
         pivot = root % 12
         if pivot==11:
             pivot = 0
@@ -34,9 +31,9 @@ class Contrapunctus:
         steps = self.scale[pivot:]
         if len(steps) < interval:
             steps = steps + self.scale
-        return sum(steps[:interval-2]) + slight
+        return sum(steps[:interval-2]) + half
 
-    def intervalDown(root, interval, slight=0):
+    def intervalDown(root, interval, half=0):
         pivot = root % 12
         if pivot==0:
             pivot = 11
@@ -45,9 +42,9 @@ class Contrapunctus:
         steps = self.scale[:pivot]
         if len(steps) < interval:
             steps = self.scale + steps
-        return sum(steps[(interval-1) * -1:]) + slight
+        return sum(steps[(interval-1) * -1:]) + half
 
-    def findInterval(x, y)
+    def findInterval(x, y):
         if x > y:
             tmp = x
             x = y
@@ -86,10 +83,10 @@ class Contrapunctus:
     def contrary(pi, pcf, pcp, ccf):
         if ccf == pcf:
             return oblique(pi, pcf, pcp, ccf)
-        if ccf > pcf:
-            fil = lambda x:x<pi
-        elif ccf < pcf:
-            fil = lambda x:x>pi
+       if ccf > pcf:
+           fil = lambda x:x<pi
+       else:
+           fil = lambda x:x>pi
        intervals = filter(fil, consonants)
        if len(intervals):
            ri = random() % len(intervals)
@@ -119,9 +116,7 @@ class Contrapunctus:
         else:
             interval=intervalDown
 
-
         cp.push(interval(melody[0], previous))
-
 
         # Middle run
         i=1
@@ -177,3 +172,30 @@ class Contrapunctus:
             cp.push(interval(melody[-2], 3, -1))
 
         cp.push(interval(melody[-1], perfect[ri]))
+        return cp
+
+
+
+    # Check whether a melody (cf) and a counter melody (cp) obey the rules
+    # vertical indicates whether the counter melody is in the upper or lower voice--positive for
+    # upper, negative for lower.
+
+    def isValid(cf, cp, vertical):
+        if findInterval(cf[0], cp[0]) not in perfect:
+            return False
+
+        if len(cf) != len(cp):
+            return False
+
+        for note in cf[1:-3]:
+            # check acceptable intervals and transitions
+            dddd
+
+        if vertical and cp[-2] != interval(cf[-2], 6, 1):
+            return False
+        elif cp[-2] != interval(cf[-2], 3, -1):
+            return False
+
+        if findInterval(cf[-1], cp[-1]) not in perfect:
+            return False
+        return True
