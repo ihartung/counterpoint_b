@@ -83,22 +83,47 @@ class Contrapunctus:
     def contrary(pi, pcf, pcp, ccf):
         if ccf == pcf:
             return oblique(pi, pcf, pcp, ccf)
-       if ccf > pcf:
-           fil = lambda x:x<pi
-       else:
-           fil = lambda x:x>pi
-       intervals = filter(fil, consonants)
-       if len(intervals):
-           ri = random() % len(intervals)
-           return intervals[ri]
-       else:
-           if pi in perfect:
-               return oblique()
-           else:
-               if random() % 2:
-                   return direct(pi, pcf, pcp, ccf)
-               else:
-                   return oblique(pi, pcf, pcp, ccf)
+        if ccf > pcf:
+            fil = lambda x:x<pi
+        else:
+            fil = lambda x:x>pi
+        intervals = filter(fil, consonants)
+        if len(intervals):
+            ri = random() % len(intervals)
+            return intervals[ri]
+        else:
+            if pi in perfect:
+                return oblique()
+            else:
+                if random() % 2:
+                    return direct(pi, pcf, pcp, ccf)
+                else:
+                    return oblique(pi, pcf, pcp, ccf)
+
+
+    def isOblique(pcf, pcp, ccf, ccp):
+        if pcf == ccf and pcp != ccp:
+            return True
+        elif pcp == ccp and pcf != ccf:
+            return True
+        else:
+            return False
+
+    def isContrary(pcf, pcp, ccf, ccp):
+        if pcf > ccf and pcp < ccp:
+            return True
+        elif pcp > ccp and pcf < ccf:
+            return True
+        else:
+            return False
+
+    def isDirect(pcf, pcp, ccf, ccp):
+        if pcf > ccf and pcp > ccp:
+            return True
+        elif pcp < ccp and pcf < ccf:
+            return True
+        else:
+            return False
 
 
     def generate(melody, vertical=1):
@@ -187,11 +212,22 @@ class Contrapunctus:
         if len(cf) != len(cp):
             return False
 
+        i=1
         for note in cf[1:-3]:
             # check acceptable intervals and transitions
-            dddd
+            tmp = findInterval(note, cp[i])
+            if tmp not in consonants:
+                return False
 
-        if vertical and cp[-2] != interval(cf[-2], 6, 1):
+            if isDirect(cf[i-1], cp[i-1], note, cp[i]):
+                if tmp in perfect:
+                    return False
+            elif not isOblique(cf[i-1], cp[i-1], note, cp[i]) and \
+                    not isContrary(cf[i-1], cp[i-1], note, cp[i]):
+                        return False
+            i += 1
+
+        if vertical > 0 and cp[-2] != interval(cf[-2], 6, 1):
             return False
         elif cp[-2] != interval(cf[-2], 3, -1):
             return False
