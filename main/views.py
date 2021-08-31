@@ -1,9 +1,13 @@
 from django.shortcuts import render
-from musicTools.contrapunctus import Contrapunctus
+from .contrapunctus import Contrapunctus
+from django.core import serializers
+from django.http import JsonResponse
 
 def counterpoint(request):
     result = Contrapunctus(request.POST['key'])
-    return result.generate(request.POST['melody'], request.POST['vertical'])
+    melody = request.POST['melody'].split(',')
+    melody = list(map(int, melody))
+    return JsonResponse({'counterpoint':result.generate(melody, int(request.POST['vertical']))})
 
 
 # Create your views here.
