@@ -4,6 +4,7 @@ class Contrapunctus:
 
     perfect = [1,5,8]
     consonants = [1,3,5,6,8]
+    imperfects = [3,6]
 
     def __init__(self, key):
         self.center = key.split()[0]
@@ -67,11 +68,32 @@ class Contrapunctus:
             steps = self.scale
 
 
-    # the next two functions will return an appropriate interval
+    # the next three functions will return an appropriate interval
     # pi = previous interval
     # pcf = previous cantus firmus note
     # pcp = previous counterpoint note
     # ccf = current cantus firmus note
+
+    def direct(self, pi, pcf, pcp, ccf):
+        if pcf == ccf:
+            return self.oblique(pi, pcf, pcp, ccf)
+        gap = abs(ccf - pcf) + pi - 1
+        y = 1
+        if ccf > pcf:
+            fil = lambda x:x>= gap 
+        else:
+            fil = lambda x:x<= gap
+            y=-1
+        intervals = list(filter(fil, self.imperfects))
+        if len(intervals) == 0 and y == -1:
+            if randint(0,1):
+                return self.oblique(pi, pcf, pcp, ccf)
+            else:
+                return self.contrary(pi, pcf, pcp, ccf)
+        if len(intervals):
+            ri = randint(0, len(intervals)-1)
+            return intervals[ri]
+
 
     def oblique(self, pi, pcf, pcp, ccf):
         if pcf == ccf:
