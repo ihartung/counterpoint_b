@@ -8,38 +8,57 @@ class Contrapunctus:
 
     def __init__(self, key):
         self.center = key.split()[0]
-        self.offset = self.getOffset(self.center)
+        self.offset = self.getMidi(self.center)
         if 'major' in key:
             tmp = [2,2,1,2,2,2,1]
-            self.scale = tmp[self.offset:] + tmp[:self.offset]
         else:
             tmp = [2,1,2,2,1,2,2]
-            self.scale = tmp[self.offset:] + tmp[:self.offset]
+        self.scale = tmp[self.offset:] + tmp[:self.offset]
+        self.setNaturals();
 
-    def getOffset(self, name):
+    def setNaturals(self):
+        self.naturals = [self.offset]
+        x = self.offset
+        for interval in self.scale[:-1]:
+          x = x + interval
+          if x >= 12:
+              x = x % 12
+          self.naturals.append(x)
+        self.naturals.sort()
+        print(self.naturals)
+
+    def getMidi(self, name):
         flatmap = {'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'}
         if 'b' in name:
             name = flatmap[name]
         result = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
         return result.index(name)
 
+    def getOffset(self, midi):
+        if midi in self.naturals:
+            return self.naturals.index(midi)
+        for x in range(len(self.naturals)):
+            if self.naturals[x] > midi:
+                return x-1
+        return 6
+
     def intervalUp(self, root, interval, half=0):
-        print(type(interval))
         print(interval)
         print(root)
         print(half)
-        pivot = root % 12
-        if pivot==11:
-            pivot = 0
-        else:
-            pivot = pivot + 1
+        if interval == 1:
+            return root
+        pivot = self.getOffset(root % 12)
         steps = self.scale[pivot:]
+        print(steps)
         if len(steps) < interval:
             steps = steps + self.scale
         return sum(steps[:interval-1]) + half + root
 
     def intervalDown(self, root, interval, half=0):
-        pivot = root % 12
+        if interval == 1:
+            return root
+        pivot = self.getOffset(root % 12)
         if pivot==0:
             pivot = 11
         else:
@@ -75,27 +94,37 @@ class Contrapunctus:
     # ccf = current cantus firmus note
 
     def direct(self, pi, pcf, pcp, ccf):
+        print('direct')
         if pcf == ccf:
             return self.oblique(pi, pcf, pcp, ccf)
         gap = abs(ccf - pcf) + pi - 1
         y = 1
         if ccf > pcf:
-            fil = lambda x:x>= gap 
+            fil = lambda x:x>= gap
         else:
             fil = lambda x:x<= gap
             y=-1
         intervals = list(filter(fil, self.imperfects))
-        if len(intervals) == 0 and y == -1:
+        if len(intervals):
+            ri = randint(0, len(intervals)-1)
+            return intervals[ri]
+        if y == -1:
             if randint(0,1):
                 return self.oblique(pi, pcf, pcp, ccf)
             else:
                 return self.contrary(pi, pcf, pcp, ccf)
-        if len(intervals):
-            ri = randint(0, len(intervals)-1)
-            return intervals[ri]
+        big_intervals = self.imperfects
+        while 1:
+            big_intervals = list(map(lambda x: x+8, big_intervals))
+            intervals = list(filter(fil, big_intervals))
+            if len(intervals):
+                ri = randint(0, len(intervals)-1)
+                return intervals[ri]
+
 
 
     def oblique(self, pi, pcf, pcp, ccf):
+        print('oblique')
         if pcf == ccf:
             # counterpoint
             intervals = list(filter(lambda x:x!=pi, self.consonants))
@@ -103,28 +132,46 @@ class Contrapunctus:
             return intervals[ri]
         else:
             # if the melody moves, then the cp must stay the same
-            return 0
+            ci = self.findInterval(ccf, pcp)
+            if ci in self.consonants:
+                return ci
+            else:
+                if randint(0, 1):
+                    return self.contrary(pi, pcf, pcp, ccf)
+                else:
+                    # this will not cause an infinite loop with oblique
+                    # because the melody has moved
+                    return self.direct(pi, pcf, pcp, ccf)
 
 
     def contrary(self, pi, pcf, pcp, ccf):
-        if ccf == pcf:
+        print('contrary')
+        if pcf == ccf:
             return self.oblique(pi, pcf, pcp, ccf)
+        y = 1
+        gap = pi - abs(ccf - pcf)
         if ccf > pcf:
-            fil = lambda x:x<pi
+            fil = lambda x:x<gap
         else:
-            fil = lambda x:x>pi
+            fil = lambda x:x>gap
+            y=-1
         intervals = list(filter(fil, self.consonants))
         if len(intervals):
             ri = randint(0, len(intervals)-1)
             return intervals[ri]
-        else:
-            if pi in self.perfect:
+        if y == 1:
+            if randint(0,1):
                 return self.oblique(pi, pcf, pcp, ccf)
             else:
-                if randint(0,1):
-                    return pi 
-                else:
-                    return self.oblique(pi, pcf, pcp, ccf)
+                return self.direct(pi, pcf, pcp, ccf)
+        big_intervals = self.consonants
+        while 1:
+            big_intervals = list(map(lambda x: x+8, big_intervals))
+            intervals = list(filter(fil, big_intervals))
+            if len(intervals):
+                ri = randint(0, len(intervals)-1)
+                return intervals[ri]
+
 
 
     def isOblique(self, pcf, pcp, ccf, ccp):
@@ -194,7 +241,7 @@ class Contrapunctus:
                 # We can move in direct, oblique, and contrary motion
                 j = randint(0,2)
                 if j == 2:
-                    # direct 
+                    # direct
                     present = previous
                 elif j == 1:
                     # oblique
