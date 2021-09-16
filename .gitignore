@@ -4,4 +4,4 @@ __pycache__
 env
 *error.log
 frontend
-Logiker/settings.py
+counterpoint/.env

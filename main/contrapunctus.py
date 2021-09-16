@@ -8,6 +8,7 @@ class Contrapunctus:
 
     def __init__(self, key):
         self.center = key.split()[0]
+        self.vertical = 1
         self.offset = self.getMidi(self.center)
         if 'major' in key:
             tmp = [2,2,1,2,2,2,1]
@@ -20,12 +21,11 @@ class Contrapunctus:
         self.naturals = [self.offset]
         x = self.offset
         for interval in self.scale[:-1]:
-          x = x + interval
-          if x >= 12:
-              x = x % 12
-          self.naturals.append(x)
+            x = x + interval
+            if x >= 12:
+                x = x % 12
+            self.naturals.append(x)
         self.naturals.sort()
-        print(self.naturals)
 
     def getMidi(self, name):
         flatmap = {'Db':'C#','Eb':'D#','Gb':'F#','Ab':'G#','Bb':'A#'}
@@ -50,23 +50,24 @@ class Contrapunctus:
             return root
         pivot = self.getOffset(root % 12)
         steps = self.scale[pivot:]
-        print(steps)
-        if len(steps) < interval:
+        while len(steps) < interval:
             steps = steps + self.scale
+        print(steps)
         return sum(steps[:interval-1]) + half + root
 
     def intervalDown(self, root, interval, half=0):
+        print(interval)
+        print(root)
+        print(half)
         if interval == 1:
             return root
         pivot = self.getOffset(root % 12)
-        if pivot==0:
-            pivot = 11
-        else:
-            pivot = pivot - 1
-        steps = self.scale[:pivot]
-        if len(steps) < interval:
-            steps = self.scale + steps
-        return sum(steps[(interval-1) * -1:]) + half + root
+        steps = self.scale[pivot-1::-1]
+        print(steps)
+        while len(steps) < interval:
+            steps = steps + self.scale[::-1]
+        print(steps)
+        return root - sum(steps[:(interval-1)]) - half
 
     def findInterval(self, x, y):
         if x > y:
@@ -143,6 +144,20 @@ class Contrapunctus:
                     # because the melody has moved
                     return self.direct(pi, pcf, pcp, ccf)
 
+    def getFilter(self, pcf, ccf, gap):
+        if ccf > pcf:
+            if self.vertical ==1:
+                fil = lambda x:x<gap
+            else:
+                fil = lambda x:x>gap
+        else:
+            if self.vertical ==1:
+                fil = lambda x:x>gap
+            else:
+                fil = lambda x:x<gap
+        return fil
+
+
 
     def contrary(self, pi, pcf, pcp, ccf):
         print('contrary')
@@ -150,16 +165,14 @@ class Contrapunctus:
             return self.oblique(pi, pcf, pcp, ccf)
         y = 1
         gap = pi - abs(ccf - pcf)
-        if ccf > pcf:
-            fil = lambda x:x<gap
-        else:
-            fil = lambda x:x>gap
+        fil = self.getFilter(ccf, pcf, gap)
+        if ccf < pcf:
             y=-1
         intervals = list(filter(fil, self.consonants))
         if len(intervals):
             ri = randint(0, len(intervals)-1)
             return intervals[ri]
-        if y == 1:
+        if (y == 1 and self.vertical==1) or (y==-1 and self.vertical==-1):
             if randint(0,1):
                 return self.oblique(pi, pcf, pcp, ccf)
             else:
@@ -200,6 +213,7 @@ class Contrapunctus:
 
 
     def generate(self, melody, vertical=1):
+        print('XXXXXXXXXXXXXXXXX')
         cp = []
         offset = vertical * 12
         ri = randint(0,2)
@@ -214,46 +228,20 @@ class Contrapunctus:
         else:
             interval=self.intervalDown
 
+        self.vertical = vertical
+
         cp.append(interval(melody[0], previous))
 
         # Middle run
         i=1
         for note in melody[1:-2]:
-            ri = randint(0,2)
-
-            if previous in self.perfect:
-                # We can move in oblique and contrary motion
-                if randint(0,1):
-
-                    # oblique
-                    present = self.oblique(previous, melody[i-1], cp[i-1], melody[i])
-                    if not present:
-                        cp.append(cp[-1])
-                        previous = self.findInterval(melody[i], cp[i])
-                        i += 1
-                        continue
-                else:
-                    # contrary
-                    present = self.contrary(previous, melody[i-1], cp[i-1], melody[i])
-
-
+            j = randint(0,2)
+            if j == 2:
+                present = self.direct(previous, melody[i-1], cp[i-1], melody[i])
+            elif j == 1:
+                present = self.oblique(previous, melody[i-1], cp[i-1], melody[i])
             else:
-                # We can move in direct, oblique, and contrary motion
-                j = randint(0,2)
-                if j == 2:
-                    # direct
-                    present = previous
-                elif j == 1:
-                    # oblique
-                    present = self.oblique(previous, melody[i-1], cp[i-1], melody[i])
-                    if not present:
-                        cp.append(cp[-1])
-                        previous = self.findInterval(melody[i], cp[i])
-                        i += 1
-                        continue
-                else:
-                    present = self.contrary(previous, melody[i-1], cp[i-1], melody[i])
-                    # contrary
+                present = self.contrary(previous, melody[i-1], cp[i-1], melody[i])
 
             cp.append(interval(note, present))
 
