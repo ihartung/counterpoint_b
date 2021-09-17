@@ -74,7 +74,7 @@ class Contrapunctus:
             tmp = x
             x = y
             y = tmp
-        pivot = x % 12
+        pivot = getOffset(x % 12)
         steps = self.scale[pivot+1:]
         count = 1
         while 1:
@@ -164,8 +164,9 @@ class Contrapunctus:
         if pcf == ccf:
             return self.oblique(pi, pcf, pcp, ccf)
         y = 1
-        gap = pi - abs(ccf - pcf)
-        fil = self.getFilter(ccf, pcf, gap)
+        gap = pi - self.findInterval(ccf, pcf)
+        print('Gap = ' + str(gap))
+        fil = self.getFilter(pcf, ccf, gap)
         if ccf < pcf:
             y=-1
         intervals = list(filter(fil, self.consonants))
@@ -179,6 +180,8 @@ class Contrapunctus:
                 return self.direct(pi, pcf, pcp, ccf)
         big_intervals = self.consonants
         while 1:
+            print(fil)
+            print(big_intervals)
             big_intervals = list(map(lambda x: x+8, big_intervals))
             intervals = list(filter(fil, big_intervals))
             if len(intervals):
