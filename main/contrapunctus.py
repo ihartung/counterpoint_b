@@ -9,17 +9,17 @@ class Contrapunctus:
     def __init__(self, key):
         self.center = key.split()[0]
         self.vertical = 1
-        self.offset = self.getMidi(self.center)
+        self.root = self.getMidi(self.center)
         if 'major' in key:
             tmp = [2,2,1,2,2,2,1]
         else:
             tmp = [2,1,2,2,1,2,2]
-        self.scale = tmp[self.offset:] + tmp[:self.offset]
+        self.scale = tmp[self.root:] + tmp[:self.root]
         self.setNaturals();
 
     def setNaturals(self):
-        self.naturals = [self.offset]
-        x = self.offset
+        self.naturals = [self.root]
+        x = self.root
         for interval in self.scale[:-1]:
             x = x + interval
             if x >= 12:
@@ -74,7 +74,7 @@ class Contrapunctus:
             tmp = x
             x = y
             y = tmp
-        pivot = getOffset(x % 12)
+        pivot = self.getOffset(x % 12)
         steps = self.scale[pivot+1:]
         count = 1
         while 1:
@@ -94,26 +94,51 @@ class Contrapunctus:
     # pcp = previous counterpoint note
     # ccf = current cantus firmus note
 
-    def direct(self, pi, pcf, pcp, ccf):
+    def directAbove(self, pi, pcf, pcp, ccf):
         print('direct')
         if pcf == ccf:
             return self.oblique(pi, pcf, pcp, ccf)
-        gap = abs(ccf - pcf) + pi - 1
-        y = 1
         if ccf > pcf:
-            fil = lambda x:x>= gap
+            gap = pi - self.indInterval(ccf,pcf)
+            fil = lambda x:x>gap
+            y = 1
         else:
-            fil = lambda x:x<= gap
+            gap = pi + self.findInterval(ccf,pcf)
+            fil = lambda x:x<gap
             y=-1
         intervals = list(filter(fil, self.imperfects))
         if len(intervals):
             ri = randint(0, len(intervals)-1)
             return intervals[ri]
         if y == -1:
-            if randint(0,1):
-                return self.oblique(pi, pcf, pcp, ccf)
-            else:
-                return self.contrary(pi, pcf, pcp, ccf)
+            return self.contrary(pi, pcf, pcp, ccf)
+        big_intervals = self.imperfects
+        while 1:
+            big_intervals = list(map(lambda x: x+8, big_intervals))
+            intervals = list(filter(fil, big_intervals))
+            if len(intervals):
+                ri = randint(0, len(intervals)-1)
+                return intervals[ri]
+
+
+    def directBelow(self, pi, pcf, pcp, ccf):
+        print('direct')
+        if pcf == ccf:
+            return self.oblique(pi, pcf, pcp, ccf)
+        if ccf > pcf:
+            gap = pi + self.findInterval(pcf,ccf)
+            fil = lambda x:x<gap
+            y = 1
+        else:
+            gap = pi - self.findInterval(pcf,ccf)
+            fil = lambda x:x>gap
+            y=-1
+        intervals = list(filter(fil, self.imperfects))
+        if len(intervals):
+            ri = randint(0, len(intervals)-1)
+            return intervals[ri]
+        if y == 1:
+            return self.contrary(pi, pcf, pcp, ccf)
         big_intervals = self.imperfects
         while 1:
             big_intervals = list(map(lambda x: x+8, big_intervals))
@@ -144,29 +169,50 @@ class Contrapunctus:
                     # because the melody has moved
                     return self.direct(pi, pcf, pcp, ccf)
 
-    def getFilter(self, pcf, ccf, gap):
-        if ccf > pcf:
-            if self.vertical ==1:
-                fil = lambda x:x<gap
-            else:
-                fil = lambda x:x>gap
-        else:
-            if self.vertical ==1:
-                fil = lambda x:x>gap
-            else:
-                fil = lambda x:x<gap
-        return fil
 
-
-
-    def contrary(self, pi, pcf, pcp, ccf):
+    def contraryAbove(self, pi, pcf, pcp, ccf):
         print('contrary')
         if pcf == ccf:
             return self.oblique(pi, pcf, pcp, ccf)
-        y = 1
-        gap = pi - self.findInterval(ccf, pcf)
-        print('Gap = ' + str(gap))
-        fil = self.getFilter(pcf, ccf, gap)
+        if ccf > pcf:
+            gap = pi - self.findInterval(ccf,pcf)
+            fil = lambda x:x<gap
+            y = 1
+        else:
+            gap = pi + self.findInterval(pcf,ccf)
+            fil = lambda x:x>gap
+            y=-1
+        intervals = list(filter(fil, self.consonants))
+        if len(intervals):
+            ri = randint(0, len(intervals)-1)
+            return intervals[ri]
+        if (y == 1 and self.vertical==1) or (y==-1 and self.vertical==-1):
+            if randint(0,1):
+                return self.oblique(pi, pcf, pcp, ccf)
+            else:
+                return self.direct(pi, pcf, pcp, ccf)
+        big_intervals = self.consonants
+        while 1:
+            print(fil)
+            print(big_intervals)
+            big_intervals = list(map(lambda x: x+8, big_intervals))
+            intervals = list(filter(fil, big_intervals))
+            if len(intervals):
+                ri = randint(0, len(intervals)-1)
+                return intervals[ri]
+
+    def contraryBelow(self, pi, pcf, pcp, ccf):
+        print('contrary')
+        if pcf == ccf:
+            return self.oblique(pi, pcf, pcp, ccf)
+        if ccf > pcf:
+            gap = pi + self.findInterval(ccf,pcf)
+            fil = lambda x:x<gap
+            y = 1
+        else:
+            gap = pi - self.findInterval(ccf,pcf)
+            fil = lambda x:x>gap
+            y=-1
         if ccf < pcf:
             y=-1
         intervals = list(filter(fil, self.consonants))
@@ -187,6 +233,7 @@ class Contrapunctus:
             if len(intervals):
                 ri = randint(0, len(intervals)-1)
                 return intervals[ri]
+
 
 
 
@@ -228,8 +275,12 @@ class Contrapunctus:
 
         if vertical > 0:
             interval=self.intervalUp
+            direct=self.directAbove
+            contrary=self.contraryAbove
         else:
             interval=self.intervalDown
+            direct=self.directBelow
+            contrary=self.contraryBelow
 
         self.vertical = vertical
 
@@ -240,11 +291,11 @@ class Contrapunctus:
         for note in melody[1:-2]:
             j = randint(0,2)
             if j == 2:
-                present = self.direct(previous, melody[i-1], cp[i-1], melody[i])
+                present = direct(previous, melody[i-1], cp[i-1], melody[i])
             elif j == 1:
                 present = self.oblique(previous, melody[i-1], cp[i-1], melody[i])
             else:
-                present = self.contrary(previous, melody[i-1], cp[i-1], melody[i])
+                present = contrary(previous, melody[i-1], cp[i-1], melody[i])
 
             cp.append(interval(note, present))
 
@@ -270,7 +321,7 @@ class Contrapunctus:
     # upper, negative for lower.
 
     def isValid(self, cf, cp, vertical):
-        if findInterval(cf[0], cp[0]) not in self.perfect:
+        if self.findInterval(cf[0], cp[0]) not in self.perfect:
             return False
 
         if len(cf) != len(cp):
@@ -279,23 +330,23 @@ class Contrapunctus:
         i=1
         for note in cf[1:-3]:
             # check acceptable intervals and transitions
-            tmp = findInterval(note, cp[i])
+            tmp = self.findInterval(note, cp[i])
             if tmp not in self.consonants:
                 return False
 
-            if isDirect(cf[i-1], cp[i-1], note, cp[i]):
+            if self.isDirect(cf[i-1], cp[i-1], note, cp[i]):
                 if tmp in self.perfect:
                     return False
-            elif not isOblique(cf[i-1], cp[i-1], note, cp[i]) and \
-                    not isContrary(cf[i-1], cp[i-1], note, cp[i]):
+            elif not self.isOblique(cf[i-1], cp[i-1], note, cp[i]) and \
+                    not self.isContrary(cf[i-1], cp[i-1], note, cp[i]):
                         return False
             i += 1
 
-        if vertical > 0 and cp[-2] != interval(cf[-2], 6, 1):
+        if vertical > 0 and cp[-2] != self.intervalUp(cf[-2], 6, 1):
             return False
-        elif cp[-2] != interval(cf[-2], 3, -1):
+        elif cp[-2] != self.intervalDown(cf[-2], 3, -1):
             return False
 
-        if findInterval(cf[-1], cp[-1]) not in self.perfect:
+        if self.findInterval(cf[-1], cp[-1]) not in self.perfect:
             return False
         return True
