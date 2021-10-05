@@ -46,30 +46,21 @@ class Contrapunctus:
         return 6
 
     def intervalUp(self, root, interval, half=0):
-        print(interval)
-        print(root)
-        print(half)
         if interval == 1:
             return root
         pivot = self.getOffset(root % 12)
         steps = self.scale[pivot:]
         while len(steps) < interval:
             steps = steps + self.scale
-        print(steps)
         return sum(steps[:interval-1]) + half + root
 
     def intervalDown(self, root, interval, half=0):
-        print(interval)
-        print(root)
-        print(half)
         if interval == 1:
             return root
         pivot = self.getOffset(root % 12)
         steps = self.scale[pivot-1::-1]
-        print(steps)
         while len(steps) < interval:
             steps = steps + self.scale[::-1]
-        print(steps)
         return root - sum(steps[:(interval-1)]) - half
 
     def findInterval(self, x, y):
@@ -98,7 +89,6 @@ class Contrapunctus:
     # ccf = current cantus firmus note
 
     def directAbove(self, pi, pcf, pcp, ccf):
-        print('direct')
         if pcf == ccf:
             return self.oblique(pi, pcf, pcp, ccf)
         if ccf > pcf:
@@ -132,7 +122,6 @@ class Contrapunctus:
 
 
     def directBelow(self, pi, pcf, pcp, ccf):
-        print('direct')
         if pcf == ccf:
             return self.oblique(pi, pcf, pcp, ccf)
         if ccf > pcf:
@@ -173,7 +162,6 @@ class Contrapunctus:
 
 
     def oblique(self, pi, pcf, pcp, ccf):
-        print('oblique')
         if pcf == ccf:
             intervals = list(filter(lambda x:x!=pi, self.consonants))
             ri = randint(0, len(intervals)-1)
@@ -193,7 +181,6 @@ class Contrapunctus:
 
 
     def contraryAbove(self, pi, pcf, pcp, ccf):
-        print('contrary')
         if pcf == ccf:
             return self.oblique(pi, pcf, pcp, ccf)
         if ccf > pcf:
@@ -219,8 +206,6 @@ class Contrapunctus:
                 return self.direct(pi, pcf, pcp, ccf)
         big_intervals = self.consonants
         while 1:
-            print(fil)
-            print(big_intervals)
             big_intervals = list(map(lambda x: x+8, big_intervals))
             intervals = list(filter(fil, big_intervals))
             if len(intervals):
@@ -228,7 +213,6 @@ class Contrapunctus:
                 return intervals[ri]
 
     def contraryBelow(self, pi, pcf, pcp, ccf):
-        print('contrary')
         if pcf == ccf:
             return self.oblique(pi, pcf, pcp, ccf)
         if ccf > pcf:
@@ -254,8 +238,6 @@ class Contrapunctus:
                 return self.direct(pi, pcf, pcp, ccf)
         big_intervals = self.consonants
         while 1:
-            print(fil)
-            print(big_intervals)
             big_intervals = list(map(lambda x: x+8, big_intervals))
             intervals = list(filter(fil, big_intervals))
             if len(intervals):
@@ -291,7 +273,6 @@ class Contrapunctus:
 
 
     def generate(self, melody, vertical=1):
-        print('XXXXXXXXXXXXXXXXX')
         cp = []
         offset = vertical * 12
         ri = randint(0,2)
