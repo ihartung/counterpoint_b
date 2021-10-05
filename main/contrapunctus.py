@@ -39,7 +39,10 @@ class Contrapunctus:
             return self.naturals.index(midi)
         for x in range(len(self.naturals)):
             if self.naturals[x] > midi:
-                return x-1
+                if self.vertical == 1:
+                    return x-1
+                else:
+                    return x+1
         return 6
 
     def intervalUp(self, root, interval, half=0):
@@ -99,7 +102,7 @@ class Contrapunctus:
         if pcf == ccf:
             return self.oblique(pi, pcf, pcp, ccf)
         if ccf > pcf:
-            gap = pi - self.indInterval(ccf,pcf)
+            gap = pi - self.findInterval(ccf,pcf)
             fil = lambda x:x>gap
             y = 1
         else:
@@ -111,7 +114,14 @@ class Contrapunctus:
             ri = randint(0, len(intervals)-1)
             return intervals[ri]
         if y == -1:
-            return self.contrary(pi, pcf, pcp, ccf)
+            if randint(0,1):
+                ci = self.quickOblique(ccf, pcp)
+                if ci:
+                    return ci
+                else:
+                    return self.contrary(pi, pcf, pcp, ccf)
+            else:
+                return self.contrary(pi, pcf, pcp, ccf)
         big_intervals = self.imperfects
         while 1:
             big_intervals = list(map(lambda x: x+8, big_intervals))
@@ -138,7 +148,14 @@ class Contrapunctus:
             ri = randint(0, len(intervals)-1)
             return intervals[ri]
         if y == 1:
-            return self.contrary(pi, pcf, pcp, ccf)
+            if randint(0,1):
+                ci = self.quickOblique(ccf, pcp)
+                if ci:
+                    return ci
+                else:
+                    return self.contrary(pi, pcf, pcp, ccf)
+            else:
+                return self.contrary(pi, pcf, pcp, ccf)
         big_intervals = self.imperfects
         while 1:
             big_intervals = list(map(lambda x: x+8, big_intervals))
@@ -148,18 +165,23 @@ class Contrapunctus:
                 return intervals[ri]
 
 
+    def quickOblique(self, ccf, pcp):
+        ci = self.findInterval(ccf, pcp)
+        if ci in self.consonants:
+            return ci
+        return 0;
+
 
     def oblique(self, pi, pcf, pcp, ccf):
         print('oblique')
         if pcf == ccf:
-            # counterpoint
             intervals = list(filter(lambda x:x!=pi, self.consonants))
             ri = randint(0, len(intervals)-1)
             return intervals[ri]
         else:
             # if the melody moves, then the cp must stay the same
-            ci = self.findInterval(ccf, pcp)
-            if ci in self.consonants:
+            ci = self.quickOblique(ccf, pcp)
+            if ci:
                 return ci
             else:
                 if randint(0, 1):
@@ -186,9 +208,13 @@ class Contrapunctus:
         if len(intervals):
             ri = randint(0, len(intervals)-1)
             return intervals[ri]
-        if (y == 1 and self.vertical==1) or (y==-1 and self.vertical==-1):
+        if y == 1:
             if randint(0,1):
-                return self.oblique(pi, pcf, pcp, ccf)
+                ci = self.quickOblique(ccf, pcp)
+                if ci:
+                    return ci
+                else:
+                    return self.direct(pi, pcf, pcp, ccf)
             else:
                 return self.direct(pi, pcf, pcp, ccf)
         big_intervals = self.consonants
@@ -207,21 +233,23 @@ class Contrapunctus:
             return self.oblique(pi, pcf, pcp, ccf)
         if ccf > pcf:
             gap = pi + self.findInterval(ccf,pcf)
-            fil = lambda x:x<gap
+            fil = lambda x:x>gap
             y = 1
         else:
             gap = pi - self.findInterval(ccf,pcf)
-            fil = lambda x:x>gap
-            y=-1
-        if ccf < pcf:
+            fil = lambda x:x<gap
             y=-1
         intervals = list(filter(fil, self.consonants))
         if len(intervals):
             ri = randint(0, len(intervals)-1)
             return intervals[ri]
-        if (y == 1 and self.vertical==1) or (y==-1 and self.vertical==-1):
+        if y==-1:
             if randint(0,1):
-                return self.oblique(pi, pcf, pcp, ccf)
+                ci = self.quickOblique(ccf, pcp)
+                if ci in self.consonants:
+                    return ci
+                else:
+                    return self.direct(pi, pcf, pcp, ccf)
             else:
                 return self.direct(pi, pcf, pcp, ccf)
         big_intervals = self.consonants
@@ -270,17 +298,16 @@ class Contrapunctus:
 
         # previous records the previous interval, slightly abused here
         previous = self.perfect[ri]
-
         # Beginning chord
 
         if vertical > 0:
             interval=self.intervalUp
-            direct=self.directAbove
-            contrary=self.contraryAbove
+            self.direct=self.directAbove
+            self.contrary=self.contraryAbove
         else:
             interval=self.intervalDown
-            direct=self.directBelow
-            contrary=self.contraryBelow
+            self.direct=self.directBelow
+            self.contrary=self.contraryBelow
 
         self.vertical = vertical
 
@@ -291,11 +318,11 @@ class Contrapunctus:
         for note in melody[1:-2]:
             j = randint(0,2)
             if j == 2:
-                present = direct(previous, melody[i-1], cp[i-1], melody[i])
+                present = self.direct(previous, melody[i-1], cp[i-1], melody[i])
             elif j == 1:
                 present = self.oblique(previous, melody[i-1], cp[i-1], melody[i])
             else:
-                present = contrary(previous, melody[i-1], cp[i-1], melody[i])
+                present = self.contrary(previous, melody[i-1], cp[i-1], melody[i])
 
             cp.append(interval(note, present))
 
